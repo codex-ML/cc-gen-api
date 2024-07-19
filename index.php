@@ -1,30 +1,89 @@
 <?php
 
+// Check if accessed directly at the root path '/'
+if ($_SERVER['REQUEST_URI'] === '/') {
+    // HTML content to display
+    ?>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>CC GEN API</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>CC GEN API Usage Example</h1>
+        <p>This page demonstrates how to use an API to retrieve data:</p>
+        <ul>
+            <li>To retrieve data, provide parameters in the URL:</li>
+            <li><code>bin</code>: Specify the BIN (Bank Identification Number).</li>
+            <li><code>s_date</code>: Start date for data retrieval (optional).</li>
+            <li><code>year</code>: Year for data retrieval (optional).</li>
+            <li><code>number</code>: Number of records to retrieve (optional).</li>
+            <li><code>format</code>: Desired format of the retrieved data (optional). <code>pipe , csv , xml , json , sql</code></li>
+        </ul>
+        <p>Example usage: <code>/script.php?bin=123456&s_date=2023-01-01&number=10&format=csv</code></p>
+        <p>The script will make a POST request to the API and display the retrieved data.</p>
+    </body>
+    </html>
+    <?php
+    exit; // Stop further execution
+}
+
+// Retrieve parameters from the URL
+$bin = $_GET['bin'] ?? '';         // Default to empty string if 'bin' parameter is not provided
+$s_date = $_GET['s_date'] ?? '';   // Default to empty string if 's_date' parameter is not provided
+$year = $_GET['year'] ?? '';       // Default to empty string if 'year' parameter is not provided
+$number = $_GET['number'] ?? '';   // Default to empty string if 'number' parameter is not provided
+$format = $_GET['format'] ?? '';   // Default to empty string if 'format' parameter is not provided
+
 $curl = curl_init();
 
+// Prepare the POST fields with retrieved parameters
+$post_fields = http_build_query(array(
+    'type' => '3',
+    'bin' => $bin,
+    'date' => 'on',
+    's_date' => $s_date,
+    'year' => $year,
+    'csv' => 'on',
+    's_csv' => '',
+    'number' => $number,
+    'format' => $format
+));
+
 curl_setopt_array($curl, array(
-  CURLOPT_URL => 'https://bincheck.org/{bin}',
+  CURLOPT_URL => 'https://namsogen.org/ajax.php',
   CURLOPT_RETURNTRANSFER => true,
   CURLOPT_ENCODING => '',
   CURLOPT_MAXREDIRS => 10,
   CURLOPT_TIMEOUT => 0,
   CURLOPT_FOLLOWLOCATION => true,
   CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-  CURLOPT_CUSTOMREQUEST => 'GET',
+  CURLOPT_CUSTOMREQUEST => 'POST',
+  CURLOPT_POSTFIELDS => $post_fields,
   CURLOPT_HTTPHEADER => array(
     'User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0',
-    'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    'Accept: */*',
     'Accept-Language: en-US,en;q=0.5',
     'Accept-Encoding: gzip, deflate, br',
-    'Alt-Used: bincheck.org',
+    'Content-Type: application/x-www-form-urlencoded; charset=UTF-8',
+    'X-Requested-With: XMLHttpRequest',
+    'Origin: https://namsogen.org',
     'Connection: keep-alive',
-    'Referer: https://bincheck.org/',
-    'Cookie: _bins_session=d0dqMWo3OEplOUp5RCswWTlCMVRvMmoxNVBheHRFQUJpQm5tRXNDWW4vclNMOG9Gc2lWbGNGaXZoOHEvTVlZMGN1K0k4bk91MjBPZEpJYWxiZjg0RXlaNGhwdlNDSGlrRFBQbjRqNVVMWHMzek9JalJ5bmJIaWczU21sNXNkVHJzb2llcDZqdGF5WXcveGhOdmJFMS93PT0tLVl6L0Z6NlFPRlYyQXo5aS9PbGh0ZEE9PQ%3D%3D--0dcdb9ece6fe5c85efa9ea5d1206a3f9f7e68577; sb_main_6ba56ed57a6c774e56669284e8ac89a0=1; sb_count_6ba56ed57a6c774e56669284e8ac89a0=1; _bins_session=a1FFTlNCUG5mVWIxNzg5WFpnUStRb3VWR3oyeitKdm9keWFmdUhaNER3bjJSSDdodEFxMXVVTmJkSmpxSG1zckhHTGxPa3U3Tm9VQXJDUkV4cUhsV3BwRkxrUmtKSDZ6aWdNaVZheTR4VVhaaDdDa1J5SGl3N2N0RU5Qamd4TmtJVXB4THFkTmJjRzlvaXlZMXAvMTF3PT0tLVBiSEhJaGdoQ3piV1oyaXVENDlOcnc9PQ%3D%3D--831ef699d3b5b18ff8b60e6775f26c86f2f4703b',
-    'Upgrade-Insecure-Requests: 1',
-    'Sec-Fetch-Dest: document',
-    'Sec-Fetch-Mode: navigate',
+    'Referer: https://namsogen.org/',
+    'Sec-Fetch-Dest: empty',
+    'Sec-Fetch-Mode: cors',
     'Sec-Fetch-Site: same-origin',
-    'Sec-Fetch-User:?1',
     'TE: trailers'
   ),
 ));
@@ -33,35 +92,17 @@ $response = curl_exec($curl);
 
 curl_close($curl);
 
-$dom = new DOMDocument();
-@$dom->loadHTML($response);
+$response_data = explode("\n", $response);
 
-$tables = $dom->getElementsByTagName('table');
+echo "<pre>";
 
-$data = array();
+foreach ($response_data as $row) {
 
-foreach ($tables as $table) {
-  $rows = $table->getElementsByTagName('tr');
-  foreach ($rows as $row) {
-    $cols = $row->getElementsByTagName('td');
-    $rowData = array();
-    foreach ($cols as $col) {
-      $rowData[] = trim($col->nodeValue);
-    }
-    $data[] = $rowData;
-  }
+    $columns = explode("|", $row);
+
+    echo implode(" | ", $columns) . "\n";
+
 }
 
-$jsonData = array();
-
-foreach ($data as $row) {
-  $jsonRow = array();
-  foreach ($row as $key => $value) {
-    $jsonRow[$key] = $value;
-  }
-  $jsonData[] = $jsonRow;
-}
-
-echo json_encode($jsonData, JSON_PRETTY_PRINT);
-
+echo "</pre>";
 ?>
